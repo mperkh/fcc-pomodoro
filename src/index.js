@@ -23,7 +23,9 @@ class TimeSelector extends Component {
         }
       break;
       case '+':
-        this.props.onTimeSubmit(this.props.seconds + 5);
+        if (this.props.seconds < 60) {
+          this.props.onTimeSubmit(this.props.seconds + 5);
+        }
       break;
       default:
       break;
