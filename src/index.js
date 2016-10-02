@@ -4,6 +4,13 @@ import { FormControl } from 'react-bootstrap';
 import { Glyphicon } from 'react-bootstrap';
 import { Button } from 'react-bootstrap';
 import { InputGroup } from 'react-bootstrap';
+import { Grid } from 'react-bootstrap';
+import { Row } from 'react-bootstrap';
+import { Col } from 'react-bootstrap';
+import { Panel } from 'react-bootstrap';
+import { ButtonGroup } from 'react-bootstrap';
+import { ProgressBar } from 'react-bootstrap';
+
 
 import './index.css';
 
@@ -16,10 +23,12 @@ class TimeSelector extends Component {
   handleClick(key) {
     switch (key) {
       case '-':
-        this.props.onTimeSubmit(this.props.seconds - 1);
+        if (this.props.seconds > 5) {
+          this.props.onTimeSubmit(this.props.seconds - 5);
+        }
       break;
       case '+':
-        this.props.onTimeSubmit(this.props.seconds + 1);
+        this.props.onTimeSubmit(this.props.seconds + 5);
       break;
       default:
       break;
@@ -28,22 +37,26 @@ class TimeSelector extends Component {
 
   render() {
     return (
-      <InputGroup>
-        <InputGroup.Button>
-          <Button onClick={this.handleClick.bind(this, '-')} bsStyle="primary">
-            <Glyphicon glyph="minus" />
-          </Button>
-        </InputGroup.Button>
-        <FormControl
-          type="text"
-          value={this.props.seconds}
-        />
-        <InputGroup.Button>
-          <Button onClick={this.handleClick.bind(this, '+')} bsStyle="primary">
-            <Glyphicon glyph="plus" />
-          </Button>
-        </InputGroup.Button>
-      </InputGroup>
+      <Row>
+        <Col md={6} mdOffset={3}>
+          <InputGroup>
+            <InputGroup.Button>
+              <Button onClick={this.handleClick.bind(this, '-')} bsStyle="primary" disabled={this.props.status}>
+                <Glyphicon glyph="minus" />
+              </Button>
+            </InputGroup.Button>
+            <FormControl
+              type="text"
+              value={this.props.seconds + ' Minutes'}
+            />
+            <InputGroup.Button>
+              <Button onClick={this.handleClick.bind(this, '+')} bsStyle="primary" disabled={this.props.status}>
+                <Glyphicon glyph="plus" />
+              </Button>
+            </InputGroup.Button>
+          </InputGroup>
+        </Col>
+      </Row>
     )
   }
 };
@@ -55,9 +68,10 @@ class Pomodoro extends Component {
     this.timerID = undefined;
 
     this.state = {
-      rest_time: 300,
-      work_time: 1500,
+      rest_time: 5,
+      work_time: 25,
       running: false,
+      working: true,
       current_time: 1500
     }
 
@@ -81,10 +95,25 @@ class Pomodoro extends Component {
         running: true
       })
       this.timerID = setInterval(() => {
-        this.setState({
-          current_time: this.state.current_time - 1
-        })
-      }, 1000);
+        if (this.state.current_time > 0) {
+          this.setState({
+            current_time: this.state.current_time - 1
+          })
+        } else {
+            this.handleStop();
+            if (this.state.working) {
+              this.setState({
+                working: false,
+                current_time: this.state.rest_time * 60
+              })
+            } else {
+              this.setState({
+                working: true,
+                current_time: this.state.work_time * 60
+              })
+          }
+        }
+      }, 100);
     }
   }
 
@@ -101,29 +130,81 @@ class Pomodoro extends Component {
     this.setState({
       work_time: time
     });
+    if (this.state.working) {
+      this.setState({
+        current_time: time * 60
+      });
+    }
   }
 
   handleNewRestTime(time) {
     this.setState({
       rest_time: time
     });
+    if (!this.state.working) {
+      this.setState({
+        current_time: time * 60
+      });
+    }
   }
 
   render() {
     let minutes = Math.floor(this.state.current_time / 60);
-    var seconds = this.state.current_time - minutes * 60;
+    let seconds = this.state.current_time - minutes * 60;
+    let progress;
+    if (this.state.working) {
+      progress = this.state.current_time / (this.state.work_time * 60) * 100;
+    } else {
+      progress = this.state.current_time / (this.state.rest_time * 60) * 100;
+    }
+
     return (
-      <div>
-        <TimeSelector seconds={this.state.rest_time} onTimeSubmit={this.handleNewRestTime}/>
-        <TimeSelector seconds={this.state.work_time} onTimeSubmit={this.handleNewWorkTime}/>
-        {('0' + minutes).slice(-2)}:{('0' + seconds).slice(-2)}
-        <Button onClick={this.handleStart} bsStyle="primary" disabled={this.state.running}>
-          Start
-        </Button>
-        <Button onClick={this.handleStop} bsStyle="danger" disabled={!this.state.running}>
-          Stop
-        </Button>
-      </div>
+      <Panel header="Pomodoro Watch" bsStyle="primary">
+        <div className="text-center">
+          <h4>Session time</h4>
+          <TimeSelector
+            seconds={this.state.work_time}
+            onTimeSubmit={this.handleNewWorkTime}
+            status={this.state.running}
+          />
+          <h4>Break time</h4>
+          <TimeSelector
+            seconds={this.state.rest_time}
+            onTimeSubmit={this.handleNewRestTime}
+            status={this.state.running}
+          />
+          <div id="status">
+            {this.state.working ? 'Session! Be productive' : 'Take a break!'}
+          </div>
+          <div id="counter">
+            {('0' + minutes).slice(-2)}:{('0' + seconds).slice(-2)}
+          </div>
+          <ProgressBar
+            active
+            bsStyle={this.state.working ? 'success' : 'warning'}
+            now={progress}
+            label={this.state.working ? 'Session' : 'Break!'}
+          />
+          <ButtonGroup>
+            <Button
+              onClick={this.handleStart}
+              bsStyle="primary"
+              disabled={this.state.running}
+              bsSize="large"
+              >
+              Start
+            </Button>
+            <Button
+              onClick={this.handleStop}
+              bsStyle="danger"
+              disabled={!this.state.running}
+              bsSize="large"
+              >
+                Stop
+            </Button>
+          </ButtonGroup>
+        </div>
+      </Panel>
 
     );
   }
@@ -136,9 +217,13 @@ Pomodoro.propTypes = {
 class App extends Component {
   render() {
     return (
-      <div className="App">
-        <Pomodoro />
-      </div>
+      <Grid>
+        <Row>
+          <Col md={6} mdOffset={3}>
+            <Pomodoro />
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
