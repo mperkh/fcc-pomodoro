@@ -10,16 +10,11 @@ import { Col } from 'react-bootstrap';
 import { Panel } from 'react-bootstrap';
 import { ButtonGroup } from 'react-bootstrap';
 import { ProgressBar } from 'react-bootstrap';
-
+import { Howl } from 'howler';
 
 import './index.css';
 
 class TimeSelector extends Component {
-  /*constructor(props) {
-    super(props);
-  }
-  */
-
   handleClick(key) {
     switch (key) {
       case '-':
@@ -41,16 +36,17 @@ class TimeSelector extends Component {
         <Col md={6} mdOffset={3}>
           <InputGroup>
             <InputGroup.Button>
-              <Button onClick={this.handleClick.bind(this, '-')} bsStyle="primary" disabled={this.props.status}>
+              <Button onClick={this.handleClick.bind(this, '-')} disabled={this.props.status}>
                 <Glyphicon glyph="minus" />
               </Button>
             </InputGroup.Button>
             <FormControl
+              readOnly
               type="text"
               value={this.props.seconds + ' Minutes'}
             />
             <InputGroup.Button>
-              <Button onClick={this.handleClick.bind(this, '+')} bsStyle="primary" disabled={this.props.status}>
+              <Button onClick={this.handleClick.bind(this, '+')} disabled={this.props.status}>
                 <Glyphicon glyph="plus" />
               </Button>
             </InputGroup.Button>
@@ -66,6 +62,9 @@ class Pomodoro extends Component {
     super(props);
 
     this.timerID = undefined;
+    this.BellSound = new Howl({
+      src: ['https://s3.amazonaws.com/f623f793d321325d3de5c7f6ff91528-default/fcc/bell.mp3']
+    });
 
     this.state = {
       rest_time: 5,
@@ -81,14 +80,6 @@ class Pomodoro extends Component {
     this.handleNewRestTime = this.handleNewRestTime.bind(this);
   }
 
-  componentWillMount() {
-//
-  }
-
-  componentDidMount() {
-
-  }
-
   handleStart() {
     if (!this.state.running) {
       this.setState({
@@ -100,6 +91,7 @@ class Pomodoro extends Component {
             current_time: this.state.current_time - 1
           })
         } else {
+            this.BellSound.play();
             this.handleStop();
             if (this.state.working) {
               this.setState({
@@ -113,7 +105,7 @@ class Pomodoro extends Component {
               })
           }
         }
-      }, 100);
+      }, 1000);
     }
   }
 
@@ -174,13 +166,12 @@ class Pomodoro extends Component {
             status={this.state.running}
           />
           <div id="status">
-            {this.state.working ? 'Session! Be productive' : 'Take a break!'}
+            {this.state.working ? 'Session - Be productive!' : 'Take a break!'}
           </div>
           <div id="counter">
             {('0' + minutes).slice(-2)}:{('0' + seconds).slice(-2)}
           </div>
           <ProgressBar
-            active
             bsStyle={this.state.working ? 'success' : 'warning'}
             now={progress}
             label={this.state.working ? 'Session' : 'Break!'}
@@ -188,7 +179,6 @@ class Pomodoro extends Component {
           <ButtonGroup>
             <Button
               onClick={this.handleStart}
-              bsStyle="primary"
               disabled={this.state.running}
               bsSize="large"
               >
@@ -196,7 +186,6 @@ class Pomodoro extends Component {
             </Button>
             <Button
               onClick={this.handleStop}
-              bsStyle="danger"
               disabled={!this.state.running}
               bsSize="large"
               >
